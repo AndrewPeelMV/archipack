@@ -83,7 +83,6 @@ else:
     from . import archipack_truss
     from . import archipack_floor
     from . import archipack_rendering
-    from . import addon_updater_ops
     try:
         """
             polylib depends on shapely

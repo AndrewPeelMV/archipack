@@ -1816,7 +1816,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
         self.line.draw(context)
 
     def sp_callback(self, context, event, state, sp):
-        # print("sp_callback event %s %s state:%s" % (event.type, event.value, state))
+        print("sp_callback event %s %s state:%s" % (event.type, event.value, state))
 
         if state == 'SUCCESS':
 
@@ -1847,7 +1847,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                     d.closed = True
                     self.state = 'CANCEL'
                     return
-
+                
                 part = d.add_part(context, delta.length)
 
             # print("self.o :%s" % o.name)
@@ -1924,24 +1924,29 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
         if self.state == 'STARTING':
             takeloc = self.mouse_to_plane(context, event)
             # print("STARTING")
+            # when user press draw button
             snap_point(takeloc=takeloc,
                 callback=self.sp_init,
+                # transform_orientation=context.space_data.transform_orientation,
                 constraint_axis=(True, True, False),
                 release_confirm=True)
             return {'RUNNING_MODAL'}
 
         elif self.state == 'RUNNING':
             # print("RUNNING")
+            # when user start drawing
+            
             self.state = 'CREATE'
             snap_point(takeloc=self.takeloc,
                 draw=self.sp_draw,
                 takemat=self.takemat,
+                transform_orientation=context.space_data.transform_orientation,
                 callback=self.sp_callback,
                 constraint_axis=(True, True, False),
-                release_confirm=True)
+                release_confirm=False)
             return {'RUNNING_MODAL'}
 
-        elif event.type in {'LEFTMOUSE', 'RET', 'NUMPAD_ENTER', 'SPACE'}:
+        elif self.state != 'CANCEL' and event.type in {'LEFTMOUSE', 'RET', 'NUMPAD_ENTER', 'SPACE'}:
 
             # print('LEFTMOUSE %s' % (event.value))
             self.feedback.instructions(context, "Draw a wall", "Click & Drag to add a segment", [
@@ -1952,7 +1957,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                 ('RIGHTCLICK or ESC', 'exit')
                 ])
 
-            if event.value == 'PRESS':
+            if event.value == 'RELEASE':
 
                 if self.flag_next:
                     self.flag_next = False
@@ -1981,7 +1986,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                     draw=self.sp_draw,
                     callback=self.sp_callback,
                     constraint_axis=(True, True, False),
-                    release_confirm=True)
+                    release_confirm=False)
 
             return {'RUNNING_MODAL'}
 
@@ -1996,7 +2001,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                 if d.n_parts > 1:
                     d.n_parts -= 1
             return {'RUNNING_MODAL'}
-
+        
         if self.state == 'CANCEL' or (event.type in {'ESC', 'RIGHTMOUSE'} and
                 event.value == 'RELEASE'):
 
@@ -2010,12 +2015,13 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
             else:
                 self.o.select = True
                 context.scene.objects.active = self.o
-                # self.ensure_ccw()
+                d = archipack_wall2.datablock(self.o)
+                if not d.closed and d.n_parts > 1:
+                    d.n_parts -= 1
                 self.o.select = True
                 context.scene.objects.active = self.o
                 # make T child
                 if self.parent is not None:
-                    d = archipack_wall2.datablock(self.o)
                     d.t_part = self.parent
 
                 if bpy.ops.archipack.wall2_manipulate.poll():

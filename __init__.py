@@ -154,6 +154,11 @@ class Archipack_Pref(AddonPreferences):
         description="Put Achipack's object into a sub menu (shift+a)",
         default=True
     )
+    max_style_draw_tool = BoolProperty(
+        name="Draw a wall use 3dsmax style",
+        description="Reverse clic / release cycle for Draw a wall",
+        default=True
+    )
     # Arrow sizes (world units)
     arrow_size = FloatProperty(
             name="Arrow",
@@ -236,6 +241,7 @@ class Archipack_Pref(AddonPreferences):
         col.prop(self, "tools_category")
         col.prop(self, "create_category")
         col.prop(self, "create_submenu")
+        col.prop(self, "max_style_draw_tool")
         box = layout.box()
         row = box.row()
         split = row.split(percentage=0.5)

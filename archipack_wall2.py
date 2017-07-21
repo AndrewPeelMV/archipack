@@ -1785,7 +1785,9 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
     # constraint to other wall and make a T child
     parent = None
     takemat = None
-
+    
+    max_style_draw_tool = False
+    
     @classmethod
     def poll(cls, context):
         return True
@@ -1816,7 +1818,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
         self.line.draw(context)
 
     def sp_callback(self, context, event, state, sp):
-        print("sp_callback event %s %s state:%s" % (event.type, event.value, state))
+        # print("sp_callback event %s %s state:%s" % (event.type, event.value, state))
 
         if state == 'SUCCESS':
 
@@ -1923,19 +1925,25 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
 
         if self.state == 'STARTING':
             takeloc = self.mouse_to_plane(context, event)
-            # print("STARTING")
-            # when user press draw button
-            snap_point(takeloc=takeloc,
-                callback=self.sp_init,
-                # transform_orientation=context.space_data.transform_orientation,
-                constraint_axis=(True, True, False),
-                release_confirm=True)
+            # wait for takeloc being visible when button is over horizon
+            rv3d = context.region_data
+            viewinv = rv3d.view_matrix.inverted()
+            if (takeloc * viewinv).z < 0:                
+                # print("STARTING")
+                # when user press draw button
+                snap_point(takeloc=takeloc,
+                    callback=self.sp_init,
+                    # transform_orientation=context.space_data.transform_orientation,
+                    constraint_axis=(True, True, False),
+                    release_confirm=True)
             return {'RUNNING_MODAL'}
 
         elif self.state == 'RUNNING':
             # print("RUNNING")
             # when user start drawing
             
+            # release confirm = False on blender mode
+            # release confirm = True on max mode
             self.state = 'CREATE'
             snap_point(takeloc=self.takeloc,
                 draw=self.sp_draw,
@@ -1943,7 +1951,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                 transform_orientation=context.space_data.transform_orientation,
                 callback=self.sp_callback,
                 constraint_axis=(True, True, False),
-                release_confirm=False)
+                release_confirm=self.max_style_draw_tool)
             return {'RUNNING_MODAL'}
 
         elif self.state != 'CANCEL' and event.type in {'LEFTMOUSE', 'RET', 'NUMPAD_ENTER', 'SPACE'}:
@@ -1956,9 +1964,14 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                 ('BACK_SPACE', 'Remove part'),
                 ('RIGHTCLICK or ESC', 'exit')
                 ])
-
-            if event.value == 'RELEASE':
-
+            
+            # press with max mode release with blender mode
+            if self.max_style_draw_tool:
+                evt_value = 'PRESS'
+            else:
+                evt_value = 'RELEASE'
+                
+            if event.value == evt_value:
                 if self.flag_next:
                     self.flag_next = False
                     o = self.o
@@ -1986,7 +1999,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                     draw=self.sp_draw,
                     callback=self.sp_callback,
                     constraint_axis=(True, True, False),
-                    release_confirm=False)
+                    release_confirm=self.max_style_draw_tool)
 
             return {'RUNNING_MODAL'}
 
@@ -2004,7 +2017,7 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
         
         if self.state == 'CANCEL' or (event.type in {'ESC', 'RIGHTMOUSE'} and
                 event.value == 'RELEASE'):
-
+            
             self.feedback.disable()
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
 
@@ -2016,8 +2029,12 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
                 self.o.select = True
                 context.scene.objects.active = self.o
                 d = archipack_wall2.datablock(self.o)
-                if not d.closed and d.n_parts > 1:
-                    d.n_parts -= 1
+                
+                # remove last segment with blender mode
+                if not self.max_style_draw_tool:
+                    if not d.closed and d.n_parts > 1:
+                        d.n_parts -= 1
+                    
                 self.o.select = True
                 context.scene.objects.active = self.o
                 # make T child
@@ -2034,6 +2051,8 @@ class ARCHIPACK_OT_wall2_draw(ArchpackDrawTool, Operator):
     def invoke(self, context, event):
 
         if context.mode == "OBJECT":
+            prefs = context.user_preferences.addons[ __name__.split('.')[0]].preferences
+            self.max_style_draw_tool = prefs.max_style_draw_tool
             self.keymap = Keymaps(context)
             self.wall_part1 = GlPolygon((0.5, 0, 0, 0.2))
             self.wall_line1 = GlPolyline((0.5, 0, 0, 0.8))

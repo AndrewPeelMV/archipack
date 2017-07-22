@@ -278,7 +278,8 @@ class TOOLS_PT_Archipack_PolyLib(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_category = "Tools"
-
+    bl_context = "objectmode"
+    
     @classmethod
     def poll(self, context):
 
@@ -383,7 +384,8 @@ class TOOLS_PT_Archipack_Tools(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_category = "Tools"
-
+    bl_context = "objectmode"
+    
     @classmethod
     def poll(self, context):
         return True
@@ -411,7 +413,8 @@ class TOOLS_PT_Archipack_Create(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_category = "Create"
-
+    bl_context = "objectmode"
+    
     @classmethod
     def poll(self, context):
         return True
@@ -528,7 +531,8 @@ def draw_menu(self, context):
 class ARCHIPACK_create_menu(Menu):
     bl_label = 'Archipack'
     bl_idname = 'ARCHIPACK_create_menu'
-
+    bl_context = "objectmode"
+    
     def draw(self, context):
         draw_menu(self, context)
 
